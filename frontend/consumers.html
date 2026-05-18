@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Consumers</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="css/utilities.css" rel="stylesheet"/>
+  <link href="css/layout.css" rel="stylesheet"/>
+  <link href="css/components.css" rel="stylesheet"/>
+  <script src="js/utils.js"></script>
+</head>
+<body>
+
+<div class="page-title">Consumers</div>
+
+<div class="table-card">
+  <div class="table-card-header">
+    <div class="table-card-title">All Consumer Records</div>
+    <div class="filter-bar">
+      <input class="filter-input" type="text" id="consumerSearch" placeholder="Search name or ID…" oninput="renderConsumers()"/>
+      <select class="filter-zone" id="consumerDistrictFilter" onchange="renderConsumers()">
+        <option value="">All Districts</option>
+      </select>
+      <select class="filter-zone" id="consumerTypeFilter" onchange="renderConsumers()">
+        <option value="">All Types</option>
+        <option>Residential</option>
+        <option>Commercial</option>
+        <option>Industrial</option>
+      </select>
+      <button class="btn-add" onclick="openModal('addConsumerModal')">
+        <i class="bi bi-plus-lg"></i> Add Consumer
+      </button>
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="table tc-table mb-0">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Consumer ID</th>
+          <th>Full Name</th>
+          <th>Meter No</th>
+          <th>District</th>
+          <th>Address</th>
+          <th>Contact Number</th>
+          <th>Account Type</th>
+          <th>Status</th>
+          <th>Date Created</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="consumerTableBody"></tbody>
+    </table>
+    <div class="empty-state" id="consumerEmpty" style="display:none">No records found.</div>
+  </div>
+</div>
+
+<!-- ADD MODAL -->
+<div class="modal-backdrop-custom" id="addConsumerModal" onclick="closeModalOutside(event,'addConsumerModal')">
+  <div class="modal-box">
+    <button class="modal-close-btn" onclick="closeModal('addConsumerModal')"><i class="bi bi-x"></i></button>
+    <div class="modal-title">Add Consumer</div>
+    <div class="modal-sub">Register a new consumer account.</div>
+
+    <div class="row g-2 mb-3">
+      <div class="col-6" id="fg-fullName">
+        <label class="form-label-custom">Full Name</label>
+        <input class="form-control-custom" type="text" id="inputFullName" placeholder="e.g. Juan Dela Cruz"/>
+        <div class="form-error-msg">Full name is required.</div>
+      </div>
+      <div class="col-6" id="fg-contact">
+        <label class="form-label-custom">Contact Number</label>
+        <input class="form-control-custom" type="text" id="inputContact" placeholder="e.g. 09XX-XXX-XXXX"/>
+        <div class="form-error-msg">Contact number is required.</div>
+      </div>
+    </div>
+
+    <div class="mb-3" id="fg-address">
+      <label class="form-label-custom">Address</label>
+      <input class="form-control-custom" type="text" id="inputAddress" placeholder="e.g. 12 Rosal St, Brgy 3"/>
+      <div class="form-error-msg">Address is required.</div>
+    </div>
+
+    <div class="row g-2 mb-3">
+      <div class="col-4">
+        <label class="form-label-custom">District</label>
+        <select class="form-control-custom" id="inputDistrict">
+          <option value="D01">District A</option>
+          <option value="D02">District B</option>
+          <option value="D03">District C</option>
+          <option value="D04">District D</option>
+        </select>
+      </div>
+      <div class="col-4">
+        <label class="form-label-custom">Account Type</label>
+        <select class="form-control-custom" id="inputAccountType">
+          <option>Residential</option>
+          <option>Commercial</option>
+          <option>Industrial</option>
+        </select>
+      </div>
+      <div class="col-4">
+        <label class="form-label-custom">Status</label>
+        <select class="form-control-custom" id="inputStatus">
+          <option>Active</option>
+          <option>Inactive</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="modal-footer-btns">
+      <button class="btn-modal-cancel" onclick="closeModal('addConsumerModal')">Cancel</button>
+      <button class="btn-modal-save" onclick="saveConsumer()">Save Consumer</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-backdrop-custom" id="editConsumerModal" onclick="closeModalOutside(event,'editConsumerModal')">
+  <div class="modal-box">
+    <button class="modal-close-btn" onclick="closeModal('editConsumerModal')"><i class="bi bi-x"></i></button>
+    <div class="modal-title">Edit Consumer</div>
+    <div class="modal-sub">Update consumer account details.</div>
+    <input type="hidden" id="editConsumerId"/>
+
+    <div class="mb-3">
+      <label class="form-label-custom">Meter Number</label>
+      <input class="form-control-custom" type="text" id="editMeterNo" readonly
+             style="background:#f5f5f5; color:#888; cursor:not-allowed;"/>
+      <small style="color:#aaa; font-size:0.75rem;">Auto-assigned. Cannot be changed here.</small>
+    </div>
+
+    <div class="row g-2 mb-3">
+      <div class="col-6">
+        <label class="form-label-custom">Full Name</label>
+        <input class="form-control-custom" type="text" id="editFullName"/>
+      </div>
+      <div class="col-6">
+        <label class="form-label-custom">Contact Number</label>
+        <input class="form-control-custom" type="text" id="editContact"/>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label-custom">Address</label>
+      <input class="form-control-custom" type="text" id="editAddress"/>
+    </div>
+
+    <div class="row g-2 mb-3">
+      <div class="col-4">
+        <label class="form-label-custom">District</label>
+        <select class="form-control-custom" id="editDistrict">
+          <option value="D01">District A</option>
+          <option value="D02">District B</option>
+          <option value="D03">District C</option>
+          <option value="D04">District D</option>
+        </select>
+      </div>
+      <div class="col-4">
+        <label class="form-label-custom">Account Type</label>
+        <select class="form-control-custom" id="editAccountType">
+          <option>Residential</option>
+          <option>Commercial</option>
+          <option>Industrial</option>
+        </select>
+      </div>
+      <div class="col-4">
+        <label class="form-label-custom">Status</label>
+        <select class="form-control-custom" id="editStatus">
+          <option>Active</option>
+          <option>Inactive</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="modal-footer-btns">
+      <button class="btn-modal-cancel" onclick="closeModal('editConsumerModal')">Cancel</button>
+      <button class="btn-modal-save" onclick="updateConsumer()">Update Consumer</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="modal-backdrop-custom" id="deleteConsumerModal" onclick="closeModalOutside(event,'deleteConsumerModal')">
+  <div class="modal-box" style="max-width:420px;text-align:center">
+    <button class="modal-close-btn" onclick="closeModal('deleteConsumerModal')"><i class="bi bi-x"></i></button>
+    <div style="font-size:2.5rem;margin-bottom:12px">🗑️</div>
+    <div class="modal-title">Delete Consumer?</div>
+    <div class="modal-sub" id="deleteConsumerMsg" style="margin-top:6px"></div>
+    <div class="modal-footer-btns" style="justify-content:center">
+      <button class="btn-modal-cancel" onclick="closeModal('deleteConsumerModal')">Cancel</button>
+      <button class="btn-modal-delete" onclick="confirmDeleteConsumer()">Yes, Delete</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/consumer.js"></script>
+<script>renderLayout('consumers'); renderConsumers();</script>
+</body>
+</html>

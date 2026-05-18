@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TapControl</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="css/utilities.css" rel="stylesheet"/>
+  <link href="css/layout.css" rel="stylesheet"/>
+  <link href="css/components.css" rel="stylesheet"/>
+  <script src="js/utils.js"></script>
+</head>
+<body>
+
+<!-- Page content injected BETWEEN sidebar/topbar wrappers by layout.js -->
+<div class="page-title">Admin Dashboard</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="stat-card-label">Total Consumers</div>
+      <div class="stat-card-value">1,284</div>
+      <div class="stat-card-trend"><span class="trend-pos">+9.0%</span> Since Last Month</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="stat-card-label">Unpaid Bills</div>
+      <div class="stat-card-value">₱48,320</div>
+      <div class="stat-card-trend"><span class="trend-neg">+3.1%</span> Since Last Week</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card">
+      <div class="stat-card-label">Collected (May)</div>
+      <div class="stat-card-value">₱236,180</div>
+      <div class="stat-card-trend"><span class="trend-pos">+9.0%</span> Since Last Month</div>
+    </div>
+  </div>
+</div>
+
+<div class="section-row mb-4" style="flex-wrap:wrap;gap:20px">
+  <div class="table-card" style="flex:1.4;min-width:280px">
+    <div class="table-card-header">
+      <div class="table-card-title">Consumers</div>
+    </div>
+    <div class="table-responsive">
+      <table class="table tc-table mb-0">
+        <thead>
+          <tr><th>#</th><th>Name</th><th>District</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>Barangay Northside</td><td><span class="zone-pill zone-a">District A</span></td><td><span class="status-pill s-active"><span class="s-dot" style="background:#1D9E75"></span>Active</span></td></tr>
+          <tr><td>2</td><td>Eastgate Complex</td><td><span class="zone-pill zone-b">District B</span></td><td><span class="status-pill s-active"><span class="s-dot" style="background:#1D9E75"></span>Active</span></td></tr>
+          <tr><td>3</td><td>Central Market</td><td><span class="zone-pill zone-c">District C</span></td><td><span class="status-pill s-maintenance"><span class="s-dot" style="background:#BA7517"></span>Maintenance</span></td></tr>
+          <tr><td>4</td><td>San Miguel Residences</td><td><span class="zone-pill zone-a">District A</span></td><td><span class="status-pill s-active"><span class="s-dot" style="background:#1D9E75"></span>Active</span></td></tr>
+          <tr><td>5</td><td>Eastgate Food Court</td><td><span class="zone-pill zone-b">District B</span></td><td><span class="status-pill s-inactive"><span class="s-dot" style="background:#e74c3c"></span>Inactive</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="chart-card" style="flex:1;min-width:240px">
+    <div class="chart-title">District Usage Overview</div>
+    <div class="chart-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#3B4FE4"></div> Usage (m³)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#9B5CF6"></div> Pressure (bar×100)</div>
+    </div>
+    <div class="chart-wrap" id="dashChart">
+      <div class="chart-col"><div class="chart-bars"><div class="bar blue" style="height:120px"></div><div class="bar purple" style="height:82px"></div></div><div class="chart-label">District A</div></div>
+      <div class="chart-col"><div class="chart-bars"><div class="bar blue" style="height:155px"></div><div class="bar purple" style="height:92px"></div></div><div class="chart-label">District B</div></div>
+      <div class="chart-col"><div class="chart-bars"><div class="bar blue" style="height:70px"></div><div class="bar purple" style="height:78px"></div></div><div class="chart-label">District C</div></div>
+      <div class="chart-col"><div class="chart-bars"><div class="bar blue" style="height:95px"></div><div class="bar purple" style="height:86px"></div></div><div class="chart-label">District D</div></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/layout.js"></script>
+<script>renderLayout('dashboard');</script>
+</body>
+</html>

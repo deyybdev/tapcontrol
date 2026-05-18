@@ -1,0 +1,34 @@
+/* =============================================
+   utilities.css
+   Global reset, base body style, and
+   shared CSS animations
+   ============================================= */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background: #f0f2f5;
+  color: #333;
+}
+
+/* Fade + slide up — used by panels and modals */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Slide in from right — used by toast */
+@keyframes slideRight {
+  from { opacity: 0; transform: translateX(60px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Fade out — used by toast auto-dismiss */
+@keyframes fadeOut {
+  to { opacity: 0; transform: translateX(60px); }
+}
