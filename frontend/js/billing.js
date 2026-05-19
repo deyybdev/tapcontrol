@@ -40,8 +40,25 @@ function calcBillAmount() {
   document.getElementById('inputAmountDue').value = (consumption * 0.76).toFixed(2);
 }
 
+// ── STATS ─────────────────────────────────────
+function updateBillingStats() {
+  const total       = bills.reduce((sum, b) => sum + b.amount, 0);
+  const collected   = bills.filter(b => b.status === 'Paid').reduce((sum, b) => sum + b.amount, 0);
+  const unpaid      = bills.filter(b => b.status !== 'Paid').reduce((sum, b) => sum + b.amount, 0);
+  const unpaidCount = bills.filter(b => b.status !== 'Paid').length;
+  const rate        = total > 0 ? ((collected / total) * 100).toFixed(1) : '0.0';
+
+  document.getElementById('b-total').textContent       = '₱' + total.toLocaleString('en-US', { minimumFractionDigits: 2 });
+  document.getElementById('b-collected').textContent   = '₱' + collected.toLocaleString('en-US', { minimumFractionDigits: 2 });
+  document.getElementById('b-unpaid').textContent      = '₱' + unpaid.toLocaleString('en-US', { minimumFractionDigits: 2 });
+  document.getElementById('b-rate').textContent        = rate + '%';
+  document.getElementById('b-unpaid-count').textContent = unpaidCount;
+}
+
 // ── READ ──────────────────────────────────────
 function renderBilling() {
+  updateBillingStats();
+
   const search       = document.getElementById('billingSearch').value.toLowerCase();
   const statusFilter = document.getElementById('billingStatusFilter').value;
   const tbody        = document.getElementById('billingTableBody');
