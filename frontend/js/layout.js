@@ -19,7 +19,7 @@ function renderLayout(activePage) {
     { id: 'payments',  icon: 'bi-credit-card',   label: 'Payments',         href: 'payments.html' },
     { section: 'Operations' },
     { id: 'requests',  icon: 'bi-tools',         label: 'Service Requests', href: 'servicerequest.html', badge: true },
-    { id: 'logout',    icon: 'bi-box-arrow-left',label: 'Logout',           href: '#', danger: true },
+    { id: 'logout',    icon: 'bi-box-arrow-left',label: 'Logout',           href: '#', danger: true, onclick: 'doLogout()' },
   ];
 
   let navHtml = '';
@@ -30,14 +30,20 @@ function renderLayout(activePage) {
       const isActive = item.id === activePage ? 'active' : '';
       const style    = item.danger ? ' style="color:#e74c3c"' : '';
       const badge    = item.badge  ? `<span class="badge-count" id="sr-badge" style="display:none">0</span>` : '';
+      const click    = item.onclick ? ` onclick="${item.onclick}"` : '';
       navHtml += `
-        <a class="nav-link-item ${isActive}" href="${item.href}"${style}>
+        <a class="nav-link-item ${isActive}" href="${item.href}"${style}${click}>
           <i class="bi ${item.icon}"></i>
           <span class="nav-text">${item.label}</span>
           ${badge}
         </a>`;
     }
   });
+
+  // Read session user
+  let tcUser = { name: 'Admin', role: 'System Administrator' };
+  try { tcUser = JSON.parse(sessionStorage.getItem('tc_user')) || tcUser; } catch(e) {}
+  const initials = tcUser.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 
   // Grab all existing page content from body BEFORE injecting anything
   const pageContent = document.body.innerHTML;
@@ -63,10 +69,10 @@ function renderLayout(activePage) {
       <nav class="sidebar-nav">${navHtml}</nav>
       <div class="sidebar-footer">
         <div class="user-info">
-          <div class="user-avatar">AD</div>
+          <div class="user-avatar">${initials}</div>
           <div>
-            <div class="user-name">Admin</div>
-            <div class="user-role">System Administrator</div>
+            <div class="user-name">${tcUser.name}</div>
+            <div class="user-role">${tcUser.role}</div>
           </div>
         </div>
       </div>
@@ -77,7 +83,7 @@ function renderLayout(activePage) {
       <div class="topbar">
         <div class="topbar-page-title" id="topbar-page-title"></div>
         <div class="topbar-right">
-          <div class="topbar-avatar">AD</div>
+          <div class="topbar-avatar">${initials}</div>
         </div>
       </div>
       <div class="content-area" id="content-area">
@@ -119,4 +125,10 @@ function updateSRBadge() {
   } else {
     badge.style.display = 'none';
   }
+}
+
+// ── Logout ──
+function doLogout() {
+  sessionStorage.removeItem('tc_user');
+  window.location.href = 'login.html';
 }
