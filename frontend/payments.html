@@ -91,16 +91,25 @@
     <div class="modal-title">Record Payment</div>
     <div class="modal-sub">Log a new payment transaction.</div>
 
-    <!-- Step 1: Consumer -->
+    <!-- Step 1: District -->
+    <div class="mb-3" id="fg-payDistrict">
+      <label class="form-label-custom">District</label>
+      <select class="form-control-custom" id="inputPayDistrict" onchange="onPayDistrictSelect()">
+        <option value="">— Select District —</option>
+      </select>
+      <div class="form-error-msg">Select a district.</div>
+    </div>
+
+    <!-- Step 2: Consumer -->
     <div class="mb-3" id="fg-payConsumer">
       <label class="form-label-custom">Consumer</label>
-      <select class="form-control-custom" id="inputPayConsumer" onchange="onPayConsumerSelect()">
-        <option value="">— Select Consumer —</option>
+      <select class="form-control-custom" id="inputPayConsumer" onchange="onPayConsumerSelect()" disabled>
+        <option value="">— Select District First —</option>
       </select>
       <div class="form-error-msg">Select a consumer.</div>
     </div>
 
-    <!-- Step 2: Unpaid bill -->
+    <!-- Step 3: Unpaid bill -->
     <div class="mb-3" id="fg-payBill">
       <label class="form-label-custom">Bill No. <span style="color:#aaa;font-size:.75rem">(Unpaid only)</span></label>
       <select class="form-control-custom" id="inputPayBill" onchange="onPayBillSelect()" disabled>
@@ -130,9 +139,12 @@
         <label class="form-label-custom">Payment Date</label>
         <input class="form-control-custom" type="date" id="inputPayDate"/>
       </div>
-      <div class="col-6">
-        <label class="form-label-custom">Received By</label>
-        <input class="form-control-custom" type="text" id="inputPayReceived" placeholder="e.g. Ana Santos"/>
+      <div class="col-6" id="fg-payReceived">
+        <label class="form-label-custom">Received By <span style="color:#aaa;font-size:.75rem">(Billing Officer)</span></label>
+        <select class="form-control-custom" id="inputPayReceived" disabled>
+          <option value="">— Select District First —</option>
+        </select>
+        <div class="form-error-msg">Select who received the payment.</div>
       </div>
     </div>
 

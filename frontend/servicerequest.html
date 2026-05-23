@@ -54,32 +54,55 @@
     <button class="modal-close-btn" onclick="closeModal('addSRModal')"><i class="bi bi-x"></i></button>
     <div class="modal-title">New Service Request</div>
     <div class="modal-sub">File a new service request.</div>
+
+    <!-- Step 1: District -->
+    <div class="mb-3" id="fg-srDistrict">
+      <label class="form-label-custom">District</label>
+      <select class="form-control-custom" id="inputSRDistrict" onchange="onSRDistrictSelect()">
+        <option value="">— Select District —</option>
+      </select>
+      <div class="form-error-msg">Select a district.</div>
+    </div>
+
+    <!-- Step 2: Consumer -->
+    <div class="mb-3" id="fg-srConsumer">
+      <label class="form-label-custom">Consumer</label>
+      <select class="form-control-custom" id="inputSRConsumer" disabled>
+        <option value="">— Select District First —</option>
+      </select>
+      <div class="form-error-msg">Select a consumer.</div>
+    </div>
+
     <div class="row g-2 mb-3">
-      <div class="col-6" id="fg-srConsumer">
-        <label class="form-label-custom">Consumer</label>
-        <input class="form-control-custom" type="text" id="inputSRConsumer" placeholder="Consumer name"/>
-        <div class="form-error-msg">Required.</div>
-      </div>
       <div class="col-6">
         <label class="form-label-custom">Request Type</label>
         <select class="form-control-custom" id="inputSRType">
-          <option>Leak Report</option><option>New Connection</option>
-          <option>Meter Issue</option><option>Pressure Problem</option><option>Other</option>
+          <option>Leak Report</option>
+          <option>New Connection</option>
+          <option>Meter Issue</option>
+          <option>Pressure Problem</option>
+          <option>Other</option>
         </select>
       </div>
-    </div>
-    <div class="row g-2 mb-3">
       <div class="col-6">
         <label class="form-label-custom">Priority</label>
         <select class="form-control-custom" id="inputSRPriority">
-          <option>Normal</option><option>Medium</option><option>High</option>
+          <option>Low</option>
+          <option>Medium</option>
+          <option>High</option>
         </select>
       </div>
-      <div class="col-6">
-        <label class="form-label-custom">Assigned To</label>
-        <input class="form-control-custom" type="text" id="inputSRAssigned" placeholder="e.g. Pedro Lim"/>
-      </div>
     </div>
+
+    <!-- Step 3: Assigned To (Technicians from selected district) -->
+    <div class="mb-3" id="fg-srAssigned">
+      <label class="form-label-custom">Assigned To <span style="color:#aaa;font-size:.75rem">(Technician)</span></label>
+      <select class="form-control-custom" id="inputSRAssigned" disabled>
+        <option value="">— Select District First —</option>
+      </select>
+      <div class="form-error-msg">Select a technician.</div>
+    </div>
+
     <div class="modal-footer-btns">
       <button class="btn-modal-cancel" onclick="closeModal('addSRModal')">Cancel</button>
       <button class="btn-modal-save" onclick="saveRequest()">Submit Request</button>

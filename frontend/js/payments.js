@@ -3,23 +3,30 @@
    CRUD logic for the Payments page
    ============================================= */
 
-let payments = [];
-let allPayConsumers = [];  // for consumer dropdown
-let unpaidBills     = [];  // all unpaid bills, filtered per consumer
+let payments        = [];
+let allPayConsumers = [];   // cache of all active consumers
+let unpaidBills     = [];   // all unpaid + overdue bills
+let allBillingStaff = [];   // cache of all active Billing Officers
 
 // ── Loaders ───────────────────────────────────
 
-async function loadPayConsumerDropdown() {
+async function loadPayDistrictDropdown() {
   try {
-    const res  = await fetch(`${API}/consumers`);
-    allPayConsumers = await res.json();
-    const dd = document.getElementById('inputPayConsumer');
+    const res  = await fetch(`${API}/districts`);
+    const data = await res.json();
+    const dd   = document.getElementById('inputPayDistrict');
     if (!dd) return;
-    dd.innerHTML = '<option value="">— Select Consumer —</option>'
-      + allPayConsumers
-          .filter(c => c.status === 'Active')
-          .map(c => `<option value="${c.consumer_id}">${c.full_name} (${c.consumer_id})</option>`)
-          .join('');
+    dd.innerHTML = '<option value="">— Select District —</option>'
+      + data.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+  } catch (e) {
+    console.error('Could not load districts for payments', e);
+  }
+}
+
+async function loadPayConsumersCache() {
+  try {
+    const res       = await fetch(`${API}/consumers`);
+    allPayConsumers = await res.json();
   } catch (e) {
     console.error('Could not load consumers for payments', e);
   }
@@ -27,49 +34,25 @@ async function loadPayConsumerDropdown() {
 
 async function loadUnpaidBills() {
   try {
-    const res = await fetch(`${API}/billing?status=Unpaid`);
-    const data = await res.json();
-    // Also grab Overdue bills
-    const res2 = await fetch(`${API}/billing?status=Overdue`);
-    const data2 = await res2.json();
-    unpaidBills = [...data, ...data2];
+    const [r1, r2] = await Promise.all([
+      fetch(`${API}/billing?status=Unpaid`),
+      fetch(`${API}/billing?status=Overdue`),
+    ]);
+    const [d1, d2] = await Promise.all([r1.json(), r2.json()]);
+    unpaidBills = [...d1, ...d2];
   } catch (e) {
     console.error('Could not load unpaid bills', e);
   }
 }
 
-// When consumer selected → populate their unpaid bills
-function onPayConsumerSelect() {
-  const consumerId = document.getElementById('inputPayConsumer').value;
-  const dd         = document.getElementById('inputPayBill');
-  document.getElementById('inputPayAmount').value = '';
-
-  if (!consumerId) {
-    dd.innerHTML = '<option value="">— Select Consumer First —</option>';
-    dd.disabled  = true;
-    return;
+async function loadBillingStaffCache() {
+  try {
+    const res       = await fetch(`${API}/staff?role=Billing%20Officer`);
+    const data      = await res.json();
+    allBillingStaff = data.filter(s => s.status === 'Active');
+  } catch (e) {
+    console.error('Could not load billing officers', e);
   }
-
-  const consumerBills = unpaidBills.filter(b => b.consumer_id === consumerId);
-  if (!consumerBills.length) {
-    dd.innerHTML = '<option value="">No unpaid bills for this consumer</option>';
-    dd.disabled  = true;
-    return;
-  }
-
-  dd.innerHTML = '<option value="">— Select Bill —</option>'
-    + consumerBills.map(b =>
-        `<option value="${b.id}" data-amount="${b.amount_due}">${b.id} — ₱${parseFloat(b.amount_due).toFixed(2)}</option>`
-      ).join('');
-  dd.disabled = false;
-}
-
-// When bill selected → auto-fill amount
-function onPayBillSelect() {
-  const dd  = document.getElementById('inputPayBill');
-  const opt = dd.options[dd.selectedIndex];
-  document.getElementById('inputPayAmount').value =
-    opt && opt.dataset.amount ? parseFloat(opt.dataset.amount).toFixed(2) : '';
 }
 
 async function loadPayments() {
@@ -94,12 +77,99 @@ async function loadPayments() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  await loadPayConsumerDropdown();
-  await loadUnpaidBills();
-  await loadPayments();
+  await Promise.all([
+    loadPayDistrictDropdown(),
+    loadPayConsumersCache(),
+    loadUnpaidBills(),
+    loadBillingStaffCache(),
+    loadPayments(),
+  ]);
 });
 
 let pendingDeletePaymentId = null;
+
+// ── Chain Handlers ────────────────────────────
+
+// Step 1: District selected → populate Consumer dropdown
+function onPayDistrictSelect() {
+  const districtId     = document.getElementById('inputPayDistrict').value;
+  const consumerDD     = document.getElementById('inputPayConsumer');
+  const billDD         = document.getElementById('inputPayBill');
+  const receivedDD     = document.getElementById('inputPayReceived');
+
+  // Reset downstream fields
+  document.getElementById('inputPayAmount').value = '';
+  billDD.innerHTML = '<option value="">— Select Consumer First —</option>';
+  billDD.disabled  = true;
+
+  if (!districtId) {
+    consumerDD.innerHTML = '<option value="">— Select District First —</option>';
+    consumerDD.disabled  = true;
+    receivedDD.innerHTML = '<option value="">— Select District First —</option>';
+    receivedDD.disabled  = true;
+    return;
+  }
+
+  // Filter active consumers in this district
+  const filtered = allPayConsumers.filter(c => c.district_id === districtId && c.status === 'Active');
+  if (!filtered.length) {
+    consumerDD.innerHTML = '<option value="">No active consumers in this district</option>';
+    consumerDD.disabled  = true;
+  } else {
+    consumerDD.innerHTML = '<option value="">— Select Consumer —</option>'
+      + filtered.map(c =>
+          `<option value="${c.consumer_id}">${c.full_name} (${c.consumer_id})</option>`
+        ).join('');
+    consumerDD.disabled = false;
+  }
+
+  // Filter Billing Officers assigned to this district
+  const officers = allBillingStaff.filter(s => s.district_id === districtId);
+  if (!officers.length) {
+    receivedDD.innerHTML = '<option value="">No Billing Officers in this district</option>';
+    receivedDD.disabled  = true;
+  } else {
+    receivedDD.innerHTML = '<option value="">— Select Officer —</option>'
+      + officers.map(s =>
+          `<option value="${s.name}">${s.name} (${s.staff_id})</option>`
+        ).join('');
+    receivedDD.disabled = false;
+  }
+}
+
+// Step 2: Consumer selected → populate unpaid bills
+function onPayConsumerSelect() {
+  const consumerId = document.getElementById('inputPayConsumer').value;
+  const billDD     = document.getElementById('inputPayBill');
+  document.getElementById('inputPayAmount').value = '';
+
+  if (!consumerId) {
+    billDD.innerHTML = '<option value="">— Select Consumer First —</option>';
+    billDD.disabled  = true;
+    return;
+  }
+
+  const consumerBills = unpaidBills.filter(b => b.consumer_id === consumerId);
+  if (!consumerBills.length) {
+    billDD.innerHTML = '<option value="">No unpaid bills for this consumer</option>';
+    billDD.disabled  = true;
+    return;
+  }
+
+  billDD.innerHTML = '<option value="">— Select Bill —</option>'
+    + consumerBills.map(b =>
+        `<option value="${b.id}" data-amount="${b.amount_due}">${b.id} — ₱${parseFloat(b.amount_due).toFixed(2)}</option>`
+      ).join('');
+  billDD.disabled = false;
+}
+
+// Step 3: Bill selected → auto-fill amount
+function onPayBillSelect() {
+  const dd  = document.getElementById('inputPayBill');
+  const opt = dd.options[dd.selectedIndex];
+  document.getElementById('inputPayAmount').value =
+    opt && opt.dataset.amount ? parseFloat(opt.dataset.amount).toFixed(2) : '';
+}
 
 // ── Helpers ───────────────────────────────────
 
@@ -123,8 +193,8 @@ function updatePaymentStats() {
 
 // ── READ ──────────────────────────────────────
 function renderPayments() {
-  const search       = document.getElementById('paymentSearch').value.toLowerCase();
-  const methodFilter = document.getElementById('paymentMethodFilter').value;
+  const search       = (document.getElementById('paymentSearch')?.value || '').toLowerCase();
+  const methodFilter = document.getElementById('paymentMethodFilter')?.value || '';
   const tbody        = document.getElementById('paymentTableBody');
   const emptyMsg     = document.getElementById('paymentEmpty');
 
@@ -165,18 +235,22 @@ function renderPayments() {
 
 // ── CREATE ────────────────────────────────────
 async function savePayment() {
+  const districtId = document.getElementById('inputPayDistrict').value;
   const consumerId = document.getElementById('inputPayConsumer').value;
   const billId     = document.getElementById('inputPayBill').value;
   const amount     = parseFloat(document.getElementById('inputPayAmount').value);
+  const received   = document.getElementById('inputPayReceived').value;
 
   let valid = true;
   const validate = (fieldId, condition) => {
     document.getElementById(fieldId).classList.toggle('has-error', !condition);
     if (!condition) valid = false;
   };
+  validate('fg-payDistrict', districtId !== '');
   validate('fg-payConsumer', consumerId !== '');
   validate('fg-payBill',     billId     !== '');
   validate('fg-payAmount',   !isNaN(amount) && amount > 0);
+  validate('fg-payReceived', received   !== '');
   if (!valid) return;
 
   const fields = {
@@ -185,7 +259,7 @@ async function savePayment() {
     amount:       amount,
     method:       document.getElementById('inputPayMethod').value,
     payment_date: document.getElementById('inputPayDate').value || new Date().toISOString().split('T')[0],
-    received_by:  document.getElementById('inputPayReceived').value.trim() || null,
+    received_by:  received || null,
   };
 
   try {
@@ -195,16 +269,18 @@ async function savePayment() {
       body:    JSON.stringify(fields),
     });
     if (res.ok) {
-      // Reload both payments and unpaid bills so paid bill disappears from dropdown
       await Promise.all([loadUnpaidBills(), loadPayments()]);
       closeModal('addPaymentModal');
       toast('Payment recorded!');
       // Reset form
-      document.getElementById('inputPayConsumer').value  = '';
-      document.getElementById('inputPayBill').innerHTML  = '<option value="">— Select Consumer First —</option>';
-      document.getElementById('inputPayBill').disabled   = true;
-      document.getElementById('inputPayAmount').value    = '';
-      document.getElementById('inputPayReceived').value  = '';
+      document.getElementById('inputPayDistrict').value  = '';
+      document.getElementById('inputPayConsumer').innerHTML = '<option value="">— Select District First —</option>';
+      document.getElementById('inputPayConsumer').disabled  = true;
+      document.getElementById('inputPayBill').innerHTML     = '<option value="">— Select Consumer First —</option>';
+      document.getElementById('inputPayBill').disabled      = true;
+      document.getElementById('inputPayAmount').value       = '';
+      document.getElementById('inputPayReceived').innerHTML = '<option value="">— Select District First —</option>';
+      document.getElementById('inputPayReceived').disabled  = true;
     } else {
       const err = await res.json();
       toast('Error: ' + (err.error || 'Failed to record payment.'));

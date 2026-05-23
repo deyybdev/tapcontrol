@@ -32,20 +32,26 @@ router.get('/', async (req, res) => {
 
 // POST /api/service-requests
 router.post('/', async (req, res) => {
-  const { id, consumer_id, type, priority, assigned_to } = req.body;
-  if (!id || !consumer_id) {
-    return res.status(400).json({ error: 'id and consumer_id are required' });
+  const { consumer_id, type, priority, assigned_to } = req.body;
+  if (!consumer_id) {
+    return res.status(400).json({ error: 'consumer_id is required' });
   }
   try {
+    // Generate ID server-side — safe against race conditions and deletions
+    const [[{ maxId }]] = await db.query(
+      `SELECT COALESCE(MAX(CAST(SUBSTRING(id, 4) AS UNSIGNED)), 0) AS maxId FROM service_requests`
+    );
+    const newId = 'SR-' + String(maxId + 1).padStart(3, '0');
+
     await db.query(
       `INSERT INTO service_requests (id, consumer_id, type, priority, assigned_to, status)
        VALUES (?,?,?,?,?,'Open')`,
-      [id, consumer_id, type || 'Other', priority || 'Low', assigned_to || null]
+      [newId, consumer_id, type || 'Other', priority || 'Low', assigned_to || null]
     );
     const [[row]] = await db.query(
       `SELECT sr.*, c.full_name AS consumer_name
        FROM service_requests sr JOIN consumers c ON sr.consumer_id = c.consumer_id
-       WHERE sr.id = ?`, [id]
+       WHERE sr.id = ?`, [newId]
     );
     res.status(201).json(row);
   } catch (err) {
@@ -53,7 +59,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PATCH /api/service-requests/:id/resolve  — quick resolve from table row
+// PATCH /api/service-requests/:id/resolve
 router.patch('/:id/resolve', async (req, res) => {
   try {
     await db.query("UPDATE service_requests SET status='Resolved' WHERE id=?", [req.params.id]);
