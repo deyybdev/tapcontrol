@@ -3,31 +3,106 @@
    CRUD logic for the Payments page
    ============================================= */
 
-// Starts empty — data will come from the backend API later
 let payments = [];
+let allPayConsumers = [];  // for consumer dropdown
+let unpaidBills     = [];  // all unpaid bills, filtered per consumer
+
+// ── Loaders ───────────────────────────────────
+
+async function loadPayConsumerDropdown() {
+  try {
+    const res  = await fetch(`${API}/consumers`);
+    allPayConsumers = await res.json();
+    const dd = document.getElementById('inputPayConsumer');
+    if (!dd) return;
+    dd.innerHTML = '<option value="">— Select Consumer —</option>'
+      + allPayConsumers
+          .filter(c => c.status === 'Active')
+          .map(c => `<option value="${c.consumer_id}">${c.full_name} (${c.consumer_id})</option>`)
+          .join('');
+  } catch (e) {
+    console.error('Could not load consumers for payments', e);
+  }
+}
+
+async function loadUnpaidBills() {
+  try {
+    const res = await fetch(`${API}/billing?status=Unpaid`);
+    const data = await res.json();
+    // Also grab Overdue bills
+    const res2 = await fetch(`${API}/billing?status=Overdue`);
+    const data2 = await res2.json();
+    unpaidBills = [...data, ...data2];
+  } catch (e) {
+    console.error('Could not load unpaid bills', e);
+  }
+}
+
+// When consumer selected → populate their unpaid bills
+function onPayConsumerSelect() {
+  const consumerId = document.getElementById('inputPayConsumer').value;
+  const dd         = document.getElementById('inputPayBill');
+  document.getElementById('inputPayAmount').value = '';
+
+  if (!consumerId) {
+    dd.innerHTML = '<option value="">— Select Consumer First —</option>';
+    dd.disabled  = true;
+    return;
+  }
+
+  const consumerBills = unpaidBills.filter(b => b.consumer_id === consumerId);
+  if (!consumerBills.length) {
+    dd.innerHTML = '<option value="">No unpaid bills for this consumer</option>';
+    dd.disabled  = true;
+    return;
+  }
+
+  dd.innerHTML = '<option value="">— Select Bill —</option>'
+    + consumerBills.map(b =>
+        `<option value="${b.id}" data-amount="${b.amount_due}">${b.id} — ₱${parseFloat(b.amount_due).toFixed(2)}</option>`
+      ).join('');
+  dd.disabled = false;
+}
+
+// When bill selected → auto-fill amount
+function onPayBillSelect() {
+  const dd  = document.getElementById('inputPayBill');
+  const opt = dd.options[dd.selectedIndex];
+  document.getElementById('inputPayAmount').value =
+    opt && opt.dataset.amount ? parseFloat(opt.dataset.amount).toFixed(2) : '';
+}
 
 async function loadPayments() {
-  const res = await fetch(`${API}/payments`);
+  const res  = await fetch(`${API}/payments`);
   const data = await res.json();
-  // Convert field names from backend
   payments = data.map(p => ({
-    id: p.id,
-    consumer: p.consumer_name,
+    id:         p.id,
+    consumer:   p.consumer_name,
     consumerId: p.consumer_id,
-    bill: p.bill_id,
-    amount: p.amount,
-    method: p.method,
-    date: p.payment_date ? new Date(p.payment_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—',
-    received: p.received_by || '—',
+    bill:       p.bill_id,
+    amount:     parseFloat(p.amount) || 0,
+    method:     p.method,
+    date:       p.payment_date
+                  ? new Date(p.payment_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                  : '—',
+    rawDate:    p.payment_date
+                  ? new Date(p.payment_date).toISOString().split('T')[0]
+                  : '',
+    received:   p.received_by || '—',
   }));
   renderPayments();
 }
 
-document.addEventListener('DOMContentLoaded', loadPayments);
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadPayConsumerDropdown();
+  await loadUnpaidBills();
+  await loadPayments();
+});
 
 let pendingDeletePaymentId = null;
 
-// Helper: payment method badge
+// ── Helpers ───────────────────────────────────
+
 function methodBadge(method) {
   const styles = {
     'Cash':          { cls: 's-active',      col: '#1D9E75' },
@@ -38,7 +113,6 @@ function methodBadge(method) {
   return `<span class="status-pill ${s.cls}"><span class="s-dot" style="background:${s.col}"></span>${method}</span>`;
 }
 
-// Update the stat counters above the table
 function updatePaymentStats() {
   const total = payments.reduce((sum, p) => sum + p.amount, 0);
   document.getElementById('p-total').textContent = '₱' + total.toLocaleString('en-US', { minimumFractionDigits: 2 });
@@ -74,12 +148,12 @@ function renderPayments() {
   tbody.innerHTML = results.map((p, i) => `
     <tr>
       <td>${i + 1}</td>
-      <td><code>${p.id}</code></td>
-      <td>${p.consumer}</td>
-      <td><code>${p.bill}</code></td>
+      <td><code style="font-size:.78rem;color:#4d80e4">${p.id}</code></td>
+      <td><strong>${p.consumer}</strong></td>
+      <td><code style="font-size:.78rem;color:#666">${p.bill}</code></td>
       <td><strong>₱${p.amount.toFixed(2)}</strong></td>
       <td>${methodBadge(p.method)}</td>
-      <td style="color:#aaa; font-size:0.82rem">${p.date}</td>
+      <td style="color:#aaa;font-size:.82rem">${p.date}</td>
       <td>${p.received}</td>
       <td>
         <button class="btn-edit-sm me-1" onclick="openEditPaymentModal('${p.id}')">Edit</button>
@@ -91,8 +165,8 @@ function renderPayments() {
 
 // ── CREATE ────────────────────────────────────
 async function savePayment() {
-  const consumerId = document.getElementById('inputPayConsumer').value.trim();
-  const billId     = document.getElementById('inputPayBill').value.trim();
+  const consumerId = document.getElementById('inputPayConsumer').value;
+  const billId     = document.getElementById('inputPayBill').value;
   const amount     = parseFloat(document.getElementById('inputPayAmount').value);
 
   let valid = true;
@@ -105,11 +179,6 @@ async function savePayment() {
   validate('fg-payAmount',   !isNaN(amount) && amount > 0);
   if (!valid) return;
 
-  // Generate next PAY ID
-  const lastNum = payments.length ? parseInt(payments[0].id.split('-')[1]) : 0;
-  const newID = 'PAY-' + String(lastNum + 1).padStart(3, '0');
-
-  // FIX: use snake_case field names to match what the backend expects
   const fields = {
     consumer_id:  consumerId,
     bill_id:      billId,
@@ -121,24 +190,72 @@ async function savePayment() {
 
   try {
     const res = await fetch(`${API}/payments`, {
-      method: 'POST',
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: newID, ...fields })
+      body:    JSON.stringify(fields),
     });
     if (res.ok) {
-      await loadPayments(); // reload from DB
+      // Reload both payments and unpaid bills so paid bill disappears from dropdown
+      await Promise.all([loadUnpaidBills(), loadPayments()]);
       closeModal('addPaymentModal');
       toast('Payment recorded!');
-      // Clear form
-      ['inputPayConsumer', 'inputPayBill', 'inputPayAmount', 'inputPayReceived'].forEach(id => {
-        document.getElementById(id).value = '';
-      });
+      // Reset form
+      document.getElementById('inputPayConsumer').value  = '';
+      document.getElementById('inputPayBill').innerHTML  = '<option value="">— Select Consumer First —</option>';
+      document.getElementById('inputPayBill').disabled   = true;
+      document.getElementById('inputPayAmount').value    = '';
+      document.getElementById('inputPayReceived').value  = '';
     } else {
       const err = await res.json();
       toast('Error: ' + (err.error || 'Failed to record payment.'));
     }
   } catch (e) {
     toast('Failed to record payment: ' + e.message);
+  }
+}
+
+// ── UPDATE ────────────────────────────────────
+function openEditPaymentModal(id) {
+  const p = payments.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('editPayId').value       = p.id;
+  document.getElementById('editPayConsumer').value = p.consumer;
+  document.getElementById('editPayBill').value     = p.bill;
+  document.getElementById('editPayAmount').value   = p.amount.toFixed(2);
+  document.getElementById('editPayMethod').value   = p.method;
+  document.getElementById('editPayDate').value     = p.rawDate;
+  document.getElementById('editPayReceived').value = p.received === '—' ? '' : p.received;
+  openModal('editPaymentModal');
+}
+
+async function updatePayment() {
+  const id = document.getElementById('editPayId').value;
+  const p  = payments.find(x => x.id === id);
+  if (!p) return;
+
+  const updateData = {
+    consumer_id: p.consumerId,
+    bill_id:     p.bill,
+    amount:      parseFloat(document.getElementById('editPayAmount').value) || 0,
+    method:      document.getElementById('editPayMethod').value,
+    received_by: document.getElementById('editPayReceived').value.trim() || null,
+  };
+
+  try {
+    const res = await fetch(`${API}/payments/${id}`, {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(updateData),
+    });
+    if (res.ok) {
+      await loadPayments();
+      closeModal('editPaymentModal');
+      toast('Payment updated!');
+    } else {
+      toast('Failed to update payment.');
+    }
+  } catch (e) {
+    toast('Error updating payment: ' + e.message);
   }
 }
 
@@ -154,11 +271,9 @@ function openDeletePaymentModal(id) {
 function confirmDeletePayment() {
   (async () => {
     try {
-      const res = await fetch(`${API}/payments/${pendingDeletePaymentId}`, {
-        method: 'DELETE',
-      });
+      const res = await fetch(`${API}/payments/${pendingDeletePaymentId}`, { method: 'DELETE' });
       if (res.ok) {
-        await loadPayments(); // Reload from database
+        await Promise.all([loadUnpaidBills(), loadPayments()]);
         closeModal('deletePaymentModal');
         toast('Payment deleted!');
         pendingDeletePaymentId = null;

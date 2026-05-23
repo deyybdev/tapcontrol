@@ -52,11 +52,17 @@
       <div class="form-error-msg">Required.</div>
     </div>
     <div class="row g-2 mb-3">
-      <div class="col-12">
+      <div class="col-6">
         <label class="form-label-custom">Role</label>
         <select class="form-control-custom" id="inputStaffRole">
           <option>Meter Reader</option><option>Billing Officer</option>
           <option>Technician</option><option>Supervisor</option>
+        </select>
+      </div>
+      <div class="col-6">
+        <label class="form-label-custom">District</label>
+        <select class="form-control-custom" id="inputStaffDistrict">
+          <!-- populated from GET /api/districts -->
         </select>
       </div>
     </div>

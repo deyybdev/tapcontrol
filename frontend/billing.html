@@ -71,33 +71,55 @@
     <button class="modal-close-btn" onclick="closeModal('addBillingModal')"><i class="bi bi-x"></i></button>
     <div class="modal-title">Add Billing Record</div>
     <div class="modal-sub">Create a new bill for a consumer.</div>
+
+    <!-- Step 1: District -->
     <div class="row g-2 mb-3">
+      <div class="col-6" id="fg-billDistrict">
+        <label class="form-label-custom">District</label>
+        <select class="form-control-custom" id="inputBillDistrict" onchange="onBillDistrictSelect()">
+          <option value="">— Select District —</option>
+        </select>
+        <div class="form-error-msg">Select a district.</div>
+      </div>
       <div class="col-6" id="fg-billConsumer">
         <label class="form-label-custom">Consumer</label>
-        <input class="form-control-custom" type="text" id="inputBillConsumer" placeholder="Consumer name"/>
-        <div class="form-error-msg">Required.</div>
+        <select class="form-control-custom" id="inputBillConsumer" onchange="onBillConsumerSelect()" disabled>
+          <option value="">— Select District First —</option>
+        </select>
+        <div class="form-error-msg">Select a consumer.</div>
       </div>
+    </div>
+
+    <!-- Auto-filled meter no -->
+    <div class="mb-3">
+      <label class="form-label-custom">Meter No.</label>
+      <input class="form-control-custom" type="text" id="inputBillMeterNo" readonly
+             placeholder="Auto-filled from consumer"
+             style="background:#f5f5f5; color:#888; cursor:not-allowed;"/>
+    </div>
+
+    <div class="row g-2 mb-3">
       <div class="col-6" id="fg-consumption">
         <label class="form-label-custom">Consumption (m³)</label>
         <input class="form-control-custom" type="number" id="inputConsumption" placeholder="e.g. 420" oninput="calcBillAmount()"/>
         <div class="form-error-msg">Enter a valid number.</div>
       </div>
-    </div>
-    <div class="row g-2 mb-3">
       <div class="col-6">
         <label class="form-label-custom">Amount Due (₱)</label>
         <input class="form-control-custom" type="number" step="0.01" id="inputAmountDue" placeholder="Auto-calculated"/>
       </div>
+    </div>
+    <div class="row g-2 mb-3">
       <div class="col-6">
         <label class="form-label-custom">Due Date</label>
         <input class="form-control-custom" type="date" id="inputDueDate"/>
       </div>
-    </div>
-    <div class="mb-3">
-      <label class="form-label-custom">Status</label>
-      <select class="form-control-custom" id="inputBillStatus">
-        <option>Unpaid</option><option>Paid</option><option>Overdue</option>
-      </select>
+      <div class="col-6">
+        <label class="form-label-custom">Status</label>
+        <select class="form-control-custom" id="inputBillStatus">
+          <option>Unpaid</option><option>Paid</option><option>Overdue</option>
+        </select>
+      </div>
     </div>
     <div class="modal-footer-btns">
       <button class="btn-modal-cancel" onclick="closeModal('addBillingModal')">Cancel</button>

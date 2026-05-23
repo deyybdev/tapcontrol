@@ -1,22 +1,13 @@
 /* =============================================
    districts.js
-   CRUD logic for the Districts page
    ============================================= */
 
-// Starts empty — data will come from the backend API later
 let districts = [];
 
 async function loadDistricts() {
-  const res = await fetch(`${API}/districts`);
+  const res  = await fetch(`${API}/districts`);
   const data = await res.json();
-  // Convert field names from backend
-  districts = data.map(d => ({
-    id: d.id,
-    name: d.name,
-    usage: d.usage_pct,
-    consumers: d.consumer_count,
-    status: d.status,
-  }));
+  districts  = data;
   renderDistricts();
 }
 
@@ -24,18 +15,22 @@ document.addEventListener('DOMContentLoaded', loadDistricts);
 
 let pendingDeleteDistrictId = null;
 
-// Helper: pick bar color based on usage %
-function usageColor(usage) {
-  if (usage >= 90) return '#e74c3c'; // critical
-  if (usage >= 75) return '#BA7517'; // warning
-  return '#1D9E75';                  // normal
+function statusCls(status) {
+  if (status === 'Critical')   return 'crit';
+  if (status === 'Near Limit') return 'warn';
+  return '';
 }
 
-// Helper: status label
-function statusLabel(status) {
-  if (status === 'Critical')   return `<span class="trend-neg">⚠ Critical</span>`;
-  if (status === 'Near Limit') return `<span class="trend-neg">⚠ Near Limit</span>`;
-  return `<span class="trend-pos">● Operational</span>`;
+function statusDot(status) {
+  if (status === 'Critical')   return `<span style="color:#e74c3c">⚠ Critical</span>`;
+  if (status === 'Near Limit') return `<span style="color:#BA7517">⚠ Near Limit</span>`;
+  return `<span style="color:#1D9E75">● Operational</span>`;
+}
+
+function barColor(pct) {
+  if (pct >= 90) return '#e74c3c';
+  if (pct >= 75) return '#BA7517';
+  return '#1D9E75';
 }
 
 // ── READ ──────────────────────────────────────
@@ -50,62 +45,78 @@ function renderDistricts() {
   }
   emptyMsg.style.display = 'none';
 
-  container.innerHTML = districts.map(d => `
+  container.innerHTML = districts.map(d => {
+    const uPct = d.usage_pct    ?? 0;
+    const cPct = d.consumer_pct ?? 0;
+    const uCol = barColor(uPct);
+    const cCol = barColor(cPct);
+
+    return `
     <div class="col-md-4">
-      <div class="stat-card" style="border-top: 3px solid ${usageColor(d.usage)}">
-        <div class="stat-card-label">${d.name}</div>
-        <div class="stat-card-value" style="color:${usageColor(d.usage)}">${d.usage}%</div>
-        <div class="stat-card-trend">
-          ${statusLabel(d.status)} · ${d.consumers.toLocaleString()} consumers
+      <div class="district-card ${statusCls(d.status)}">
+        <div class="dc-name">${d.name}</div>
+        <div class="dc-status">${statusDot(d.status)}</div>
+
+        <div class="dc-stat-row">
+          <span class="dc-stat-label">Water Usage</span>
+          <span class="dc-stat-val" style="color:${uCol}">${uPct}%</span>
         </div>
-        <div style="margin-top:14px; display:flex; gap:8px">
+        <div class="dc-progress-wrap">
+          <div class="dc-progress-fill" style="width:${uPct}%;background:${uCol}"></div>
+        </div>
+        <div style="font-size:.7rem;color:#bbb;margin-bottom:10px">
+          ${Number(d.actual_usage_m3).toLocaleString()} m³ of ${Number(d.max_capacity_m3).toLocaleString()} m³ max
+        </div>
+
+        <div class="dc-stat-row">
+          <span class="dc-stat-label">Consumer Load</span>
+          <span class="dc-stat-val" style="color:${cCol}">${cPct}%</span>
+        </div>
+        <div class="dc-progress-wrap">
+          <div class="dc-progress-fill" style="width:${cPct}%;background:${cCol}"></div>
+        </div>
+        <div style="font-size:.7rem;color:#bbb;margin-bottom:4px">
+          ${Number(d.actual_consumers).toLocaleString()} of ${Number(d.max_consumers).toLocaleString()} max consumers
+        </div>
+
+        <div class="dc-actions">
           <button class="btn-edit-sm" onclick="openEditDistrictModal('${d.id}')">Edit</button>
-          <button class="btn-del-sm" onclick="openDeleteDistrictModal('${d.id}')">Delete</button>
+          <button class="btn-del-sm"  onclick="openDeleteDistrictModal('${d.id}')">Delete</button>
         </div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 // ── CREATE ────────────────────────────────────
 async function saveDistrict() {
-  const name      = document.getElementById('inputDistName').value.trim();
-  const usage     = parseFloat(document.getElementById('inputDistUsage').value);
-  const consumers = parseInt(document.getElementById('inputDistConsumers').value);
+  const name     = document.getElementById('inputDistName').value.trim();
+  const capacity = parseFloat(document.getElementById('inputDistCapacity').value);
+  const maxCons  = parseInt(document.getElementById('inputDistMaxConsumers').value);
 
   let valid = true;
-  const validate = (fieldId, condition) => {
-    document.getElementById(fieldId).classList.toggle('has-error', !condition);
-    if (!condition) valid = false;
+  const validate = (id, cond) => {
+    document.getElementById(id).classList.toggle('has-error', !cond);
+    if (!cond) valid = false;
   };
-  validate('fg-distName',      name !== '');
-  validate('fg-distUsage',     !isNaN(usage) && usage >= 0 && usage <= 100);
-  validate('fg-distConsumers', !isNaN(consumers) && consumers >= 0);
+  validate('fg-distName',         name !== '');
+  validate('fg-distCapacity',     !isNaN(capacity) && capacity > 0);
+  validate('fg-distMaxConsumers', !isNaN(maxCons)  && maxCons  > 0);
   if (!valid) return;
-
-  const newID = 'D' + String(districts.length + 1).padStart(2, '0');
-
-  const fields = {
-    name:           name,
-    usage_pct:      usage,
-    consumer_count: consumers,
-    status:         document.getElementById('inputDistStatus').value,
-  };
 
   try {
     const res = await fetch(`${API}/districts`, {
-      method: 'POST',
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: newID, ...fields })
+      body:    JSON.stringify({ name, max_capacity_m3: capacity, max_consumers: maxCons }),
     });
     if (res.ok) {
-      await loadDistricts(); // reload from DB
+      await loadDistricts();
       closeModal('addDistrictModal');
       toast('District added!');
-      // Clear inputs
-      document.getElementById('inputDistName').value      = '';
-      document.getElementById('inputDistUsage').value     = '';
-      document.getElementById('inputDistConsumers').value = '';
+      document.getElementById('inputDistName').value         = '';
+      document.getElementById('inputDistCapacity').value     = '';
+      document.getElementById('inputDistMaxConsumers').value = '';
     } else {
       const err = await res.json();
       toast('Error: ' + (err.error || 'Failed to add district.'));
@@ -119,44 +130,35 @@ async function saveDistrict() {
 function openEditDistrictModal(id) {
   const d = districts.find(x => x.id === id);
   if (!d) return;
-
-  document.getElementById('editDistId').value        = d.id;
-  document.getElementById('editDistName').value      = d.name;
-  document.getElementById('editDistUsage').value     = d.usage;
-  document.getElementById('editDistConsumers').value = d.consumers;
-  document.getElementById('editDistStatus').value    = d.status;
-
+  document.getElementById('editDistId').value              = d.id;
+  document.getElementById('editDistName').value            = d.name;
+  document.getElementById('editDistCapacity').value        = d.max_capacity_m3;
+  document.getElementById('editDistMaxConsumers').value    = d.max_consumers;
   openModal('editDistrictModal');
 }
 
-function updateDistrict() {
-  const id  = document.getElementById('editDistId').value;
+async function updateDistrict() {
+  const id       = document.getElementById('editDistId').value;
+  const name     = document.getElementById('editDistName').value.trim();
+  const capacity = parseFloat(document.getElementById('editDistCapacity').value);
+  const maxCons  = parseInt(document.getElementById('editDistMaxConsumers').value);
 
-  const updateData = {
-    name:           document.getElementById('editDistName').value.trim(),
-    usage_pct:      parseFloat(document.getElementById('editDistUsage').value) || 0,
-    consumer_count: parseInt(document.getElementById('editDistConsumers').value) || 0,
-    status:         document.getElementById('editDistStatus').value,
-  };
-
-  (async () => {
-    try {
-      const res = await fetch(`${API}/districts/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updateData),
-      });
-      if (res.ok) {
-        await loadDistricts(); // Reload from database
-        closeModal('editDistrictModal');
-        toast('District updated!');
-      } else {
-        toast('Failed to update district.');
-      }
-    } catch (e) {
-      toast('Error updating district: ' + e.message);
+  try {
+    const res = await fetch(`${API}/districts/${id}`, {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ name, max_capacity_m3: capacity, max_consumers: maxCons }),
+    });
+    if (res.ok) {
+      await loadDistricts();
+      closeModal('editDistrictModal');
+      toast('District updated!');
+    } else {
+      toast('Failed to update district.');
     }
-  })();
+  } catch (e) {
+    toast('Error: ' + e.message);
+  }
 }
 
 // ── DELETE ────────────────────────────────────
@@ -164,26 +166,22 @@ function openDeleteDistrictModal(id) {
   const d = districts.find(x => x.id === id);
   pendingDeleteDistrictId = id;
   document.getElementById('deleteDistrictMsg').textContent =
-    `"${d?.name}" will be permanently removed.`;
+    `"${d?.name}" and all its data will be permanently removed.`;
   openModal('deleteDistrictModal');
 }
 
-function confirmDeleteDistrict() {
-  (async () => {
-    try {
-      const res = await fetch(`${API}/districts/${pendingDeleteDistrictId}`, {
-        method: 'DELETE',
-      });
-      if (res.ok) {
-        await loadDistricts(); // Reload from database
-        closeModal('deleteDistrictModal');
-        toast('District deleted!');
-        pendingDeleteDistrictId = null;
-      } else {
-        toast('Failed to delete district.');
-      }
-    } catch (e) {
-      toast('Error deleting district: ' + e.message);
+async function confirmDeleteDistrict() {
+  try {
+    const res = await fetch(`${API}/districts/${pendingDeleteDistrictId}`, { method: 'DELETE' });
+    if (res.ok) {
+      await loadDistricts();
+      closeModal('deleteDistrictModal');
+      toast('District deleted!');
+      pendingDeleteDistrictId = null;
+    } else {
+      toast('Failed to delete district.');
     }
-  })();
+  } catch (e) {
+    toast('Error: ' + e.message);
+  }
 }

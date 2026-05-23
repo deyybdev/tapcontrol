@@ -10,6 +10,19 @@
   <link href="css/utilities.css" rel="stylesheet"/>
   <link href="css/layout.css" rel="stylesheet"/>
   <link href="css/components.css" rel="stylesheet"/>
+  <style>
+    .district-card { background:#fff !important; border-radius:12px !important; padding:22px 24px !important; box-shadow:0 1px 6px rgba(0,0,0,.07) !important; border-top:4px solid #1D9E75 !important; margin-bottom:4px; }
+    .district-card.warn  { border-top-color:#BA7517 !important; }
+    .district-card.crit  { border-top-color:#e74c3c !important; }
+    .dc-name  { font-size:.72rem; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#aaa; margin-bottom:4px; }
+    .dc-status { display:inline-flex; align-items:center; gap:5px; font-size:.78rem; font-weight:500; margin-bottom:14px; }
+    .dc-stat-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
+    .dc-stat-label { font-size:.75rem; color:#888; }
+    .dc-stat-val   { font-size:.75rem; font-weight:600; color:#333; }
+    .dc-progress-wrap { background:#f0f0f0; border-radius:99px; height:7px; margin-bottom:12px; overflow:hidden; }
+    .dc-progress-fill { height:100%; border-radius:99px; transition:width .4s; }
+    .dc-actions { margin-top:14px; display:flex; gap:8px; }
+  </style>
   <script src="js/utils.js"></script>
 </head>
 <body>
@@ -22,7 +35,6 @@
   </button>
 </div>
 
-<!-- District cards rendered here by districts.js -->
 <div class="row g-3" id="districtCards"></div>
 <div class="empty-state" id="districtEmpty" style="display:none">
   No districts added yet. Click "Add District" to get started.
@@ -33,32 +45,24 @@
   <div class="modal-box">
     <button class="modal-close-btn" onclick="closeModal('addDistrictModal')"><i class="bi bi-x"></i></button>
     <div class="modal-title">Add District</div>
-    <div class="modal-sub">Register a new water supply service district.</div>
+    <div class="modal-sub">Set the district name and its maximum limits.</div>
 
     <div class="mb-3" id="fg-distName">
       <label class="form-label-custom">District Name</label>
-      <input class="form-control-custom" type="text" id="inputDistName" placeholder="e.g. District G — Lakeside"/>
+      <input class="form-control-custom" type="text" id="inputDistName" placeholder="e.g. Legazpi South District"/>
       <div class="form-error-msg">District name is required.</div>
     </div>
     <div class="row g-2 mb-3">
-      <div class="col-6" id="fg-distUsage">
-        <label class="form-label-custom">Capacity Usage (%)</label>
-        <input class="form-control-custom" type="number" min="0" max="100" id="inputDistUsage" placeholder="e.g. 72"/>
-        <div class="form-error-msg">Enter a value between 0 and 100.</div>
+      <div class="col-6" id="fg-distCapacity">
+        <label class="form-label-custom">Max Capacity (m³)</label>
+        <input class="form-control-custom" type="number" min="1" id="inputDistCapacity" placeholder="e.g. 5000"/>
+        <div class="form-error-msg">Enter a valid capacity.</div>
       </div>
-      <div class="col-6" id="fg-distConsumers">
-        <label class="form-label-custom">No. of Consumers</label>
-        <input class="form-control-custom" type="number" id="inputDistConsumers" placeholder="e.g. 420"/>
+      <div class="col-6" id="fg-distMaxConsumers">
+        <label class="form-label-custom">Max Consumers</label>
+        <input class="form-control-custom" type="number" min="1" id="inputDistMaxConsumers" placeholder="e.g. 500"/>
         <div class="form-error-msg">Enter a valid number.</div>
       </div>
-    </div>
-    <div class="mb-3">
-      <label class="form-label-custom">Status</label>
-      <select class="form-control-custom" id="inputDistStatus">
-        <option>Operational</option>
-        <option>Near Limit</option>
-        <option>Critical</option>
-      </select>
     </div>
 
     <div class="modal-footer-btns">
@@ -73,7 +77,7 @@
   <div class="modal-box">
     <button class="modal-close-btn" onclick="closeModal('editDistrictModal')"><i class="bi bi-x"></i></button>
     <div class="modal-title">Edit District</div>
-    <div class="modal-sub">Update district details.</div>
+    <div class="modal-sub">Update district name and maximum limits.</div>
     <input type="hidden" id="editDistId"/>
 
     <div class="mb-3">
@@ -82,21 +86,13 @@
     </div>
     <div class="row g-2 mb-3">
       <div class="col-6">
-        <label class="form-label-custom">Capacity Usage (%)</label>
-        <input class="form-control-custom" type="number" min="0" max="100" id="editDistUsage"/>
+        <label class="form-label-custom">Max Capacity (m³)</label>
+        <input class="form-control-custom" type="number" min="1" id="editDistCapacity"/>
       </div>
       <div class="col-6">
-        <label class="form-label-custom">No. of Consumers</label>
-        <input class="form-control-custom" type="number" id="editDistConsumers"/>
+        <label class="form-label-custom">Max Consumers</label>
+        <input class="form-control-custom" type="number" min="1" id="editDistMaxConsumers"/>
       </div>
-    </div>
-    <div class="mb-3">
-      <label class="form-label-custom">Status</label>
-      <select class="form-control-custom" id="editDistStatus">
-        <option>Operational</option>
-        <option>Near Limit</option>
-        <option>Critical</option>
-      </select>
     </div>
 
     <div class="modal-footer-btns">
@@ -106,7 +102,7 @@
   </div>
 </div>
 
-<!-- ── DELETE DISTRICT MODAL ── -->
+<!-- ── DELETE MODAL ── -->
 <div class="modal-backdrop-custom" id="deleteDistrictModal" onclick="closeModalOutside(event,'deleteDistrictModal')">
   <div class="modal-box" style="max-width:400px; text-align:center">
     <button class="modal-close-btn" onclick="closeModal('deleteDistrictModal')"><i class="bi bi-x"></i></button>

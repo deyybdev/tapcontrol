@@ -13,7 +13,7 @@ async function loadMeterDistrictDropdowns() {
     const data = await res.json();
     const options = data.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
     const addDd = document.getElementById('inputMeterDistrict');
-    if (addDd) addDd.innerHTML = options;
+    if (addDd) addDd.innerHTML = '<option value="">— Select District —</option>' + options;
     const filterDd = document.getElementById('meterDistrictFilter');
     if (filterDd) filterDd.innerHTML = '<option value="">All Districts</option>' + options;
   } catch (e) {
@@ -21,35 +21,50 @@ async function loadMeterDistrictDropdowns() {
   }
 }
 
-// Populate Consumer dropdown — value = consumer_id, data attrs carry meter_no & district_id
+// Store all consumers for district-based filtering
+let allConsumers = [];
+
 async function loadConsumerDropdown() {
   try {
     const res  = await fetch(`${API}/consumers`);
-    const data = await res.json();
-    const dd   = document.getElementById('inputConsumer');
-    if (!dd) return;
-    dd.innerHTML = '<option value="">— Select Consumer —</option>'
-      + data.map(c =>
-          `<option value="${c.consumer_id}"
-                   data-meter="${c.meter_no || ''}"
-                   data-district="${c.district_id || ''}">
-            ${c.full_name}
-          </option>`
-        ).join('');
+    allConsumers = await res.json();
   } catch (e) {
     console.error('Could not load consumers', e);
   }
 }
 
-// When a consumer is selected, auto-fill Meter No. and District
+// When district is selected, filter consumer dropdown to only that district
+function onDistrictSelect() {
+  const distId = document.getElementById('inputMeterDistrict').value;
+  const dd     = document.getElementById('inputConsumer');
+  document.getElementById('inputMeterNo').value = '';
+  dd.value = '';
+
+  if (!distId) {
+    dd.innerHTML = '<option value="">— Select District First —</option>';
+    dd.disabled  = true;
+    return;
+  }
+
+  const filtered = allConsumers.filter(c => c.district_id === distId);
+  if (!filtered.length) {
+    dd.innerHTML = '<option value="">No consumers in this district</option>';
+    dd.disabled  = true;
+    return;
+  }
+
+  dd.innerHTML = '<option value="">— Select Consumer —</option>'
+    + filtered.map(c =>
+        `<option value="${c.consumer_id}" data-meter="${c.meter_no || ''}">${c.full_name}</option>`
+      ).join('');
+  dd.disabled = false;
+}
+
+// When consumer selected, auto-fill Meter No.
 function onConsumerSelect() {
-  const dd      = document.getElementById('inputConsumer');
-  const opt     = dd.options[dd.selectedIndex];
-  const meterNo = opt ? opt.dataset.meter    : '';
-  const distId  = opt ? opt.dataset.district : '';
-  document.getElementById('inputMeterNo').value = meterNo;
-  const distDd = document.getElementById('inputMeterDistrict');
-  if (distDd && distId) distDd.value = distId;
+  const dd  = document.getElementById('inputConsumer');
+  const opt = dd.options[dd.selectedIndex];
+  document.getElementById('inputMeterNo').value = opt ? opt.dataset.meter : '';
 }
 
 // Populate Reader dropdown — only Active Meter Reader staff
@@ -198,7 +213,9 @@ async function saveMeterReading() {
       closeModal('addMeterModal');
       toast('Meter reading added!');
       // Reset form
-      document.getElementById('inputConsumer').value = '';
+      document.getElementById('inputMeterDistrict').value = '';
+      document.getElementById('inputConsumer').innerHTML  = '<option value="">— Select District First —</option>';
+      document.getElementById('inputConsumer').disabled   = true;
       document.getElementById('inputMeterNo').value  = '';
       document.getElementById('inputPrev').value     = '';
       document.getElementById('inputCurr').value     = '';

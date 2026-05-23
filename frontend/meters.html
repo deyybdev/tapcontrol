@@ -47,30 +47,31 @@
     <div class="modal-title">Add Meter Reading</div>
     <div class="modal-sub">Record a new meter reading entry.</div>
     <div class="row g-2 mb-3">
-      <div class="col-6" id="fg-consumer">
-        <label class="form-label-custom">Consumer</label>
-        <select class="form-control-custom" id="inputConsumer" onchange="onConsumerSelect()">
-          <option value="">— Select Consumer —</option>
+      <div class="col-6" id="fg-meterDistrict">
+        <label class="form-label-custom">District</label>
+        <select class="form-control-custom" id="inputMeterDistrict" onchange="onDistrictSelect()">
+          <option value="">— Select District —</option>
         </select>
         <div class="form-error-msg">Required.</div>
-      </div>
-      <div class="col-6" id="fg-meterNo">
-        <label class="form-label-custom">Meter No.</label>
-        <input class="form-control-custom" type="text" id="inputMeterNo" placeholder="Auto-filled" readonly style="background:#f5f5f5; color:#888; cursor:not-allowed;"/>
-        <div class="form-error-msg">Select a consumer first.</div>
-      </div>
-    </div>
-    <div class="row g-2 mb-3">
-      <div class="col-6">
-        <label class="form-label-custom">District</label>
-        <select class="form-control-custom" id="inputMeterDistrict">
-        </select>
       </div>
       <div class="col-6">
         <label class="form-label-custom">Reader</label>
         <select class="form-control-custom" id="inputReader">
           <option value="">— Select Meter Reader —</option>
         </select>
+      </div>
+    </div>
+    <div class="row g-2 mb-3">
+      <div class="col-6" id="fg-consumer">
+        <label class="form-label-custom">Consumer</label>
+        <select class="form-control-custom" id="inputConsumer" onchange="onConsumerSelect()" disabled>
+          <option value="">— Select District First —</option>
+        </select>
+        <div class="form-error-msg">Required.</div>
+      </div>
+      <div class="col-6" id="fg-meterNo">
+        <label class="form-label-custom">Meter No.</label>
+        <input class="form-control-custom" type="text" id="inputMeterNo" placeholder="Auto-filled" readonly style="background:#f5f5f5; color:#888; cursor:not-allowed;"/>
       </div>
     </div>
     <div class="row g-2 mb-3">

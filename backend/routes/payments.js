@@ -32,14 +32,20 @@ router.get('/', async (req, res) => {
 
 // POST /api/payments
 router.post('/', async (req, res) => {
-  const { id, consumer_id, bill_id, amount, method, payment_date, received_by } = req.body;
-  if (!id || !consumer_id || !bill_id || !amount) {
-    return res.status(400).json({ error: 'id, consumer_id, bill_id, and amount are required' });
+  const { consumer_id, bill_id, amount, method, payment_date, received_by } = req.body;
+  if (!consumer_id || !bill_id || !amount) {
+    return res.status(400).json({ error: 'consumer_id, bill_id, and amount are required' });
   }
   try {
+    // Generate ID server-side — safe against race conditions and deletions
+    const [[{ maxId }]] = await db.query(
+      `SELECT COALESCE(MAX(CAST(SUBSTRING(id, 5) AS UNSIGNED)), 0) AS maxId FROM payments`
+    );
+    const newId = 'PAY-' + String(maxId + 1).padStart(3, '0');
+
     await db.query(
       'INSERT INTO payments (id, consumer_id, bill_id, amount, method, payment_date, received_by) VALUES (?,?,?,?,?,?,?)',
-      [id, consumer_id, bill_id, amount, method || 'Cash', payment_date || new Date(), received_by || null]
+      [newId, consumer_id, bill_id, amount, method || 'Cash', payment_date || new Date(), received_by || null]
     );
     // Auto-mark the bill as Paid
     await db.query("UPDATE billing_records SET status='Paid' WHERE id=?", [bill_id]);
@@ -47,7 +53,7 @@ router.post('/', async (req, res) => {
     const [[row]] = await db.query(
       `SELECT p.*, c.full_name AS consumer_name
        FROM payments p JOIN consumers c ON p.consumer_id = c.consumer_id
-       WHERE p.id = ?`, [id]
+       WHERE p.id = ?`, [newId]
     );
     res.status(201).json(row);
   } catch (err) {

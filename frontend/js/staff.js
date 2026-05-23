@@ -3,35 +3,36 @@
    CRUD logic for the Staff page
    ============================================= */
 
-// Starts empty — data will come from the backend API later
 let staffList = [];
 
 async function loadStaffList() {
-  const res = await fetch(`${API}/staff`);
+  const res  = await fetch(`${API}/staff`);
   const data = await res.json();
-  // Convert snake_case from backend to camelCase for frontend
   staffList = data.map(s => ({
-    staffID: s.staff_id,
-    name: s.name,
-    role: s.role,
-    district: s.district_id,
-    contact: s.contact || '—',
-    status: s.status,
-    dateHired: s.date_hired,
+    staffID:   s.staff_id,
+    name:      s.name,
+    role:      s.role,
+    district:  s.district_id,
+    contact:   s.contact || '—',
+    status:    s.status,
+    dateHired: s.date_hired
+                 ? new Date(s.date_hired).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                 : '—',
   }));
   renderStaff();
 }
 
-// Fetch districts from DB and populate Add, Edit, and Filter dropdowns
+// Populate Add modal, Edit modal, and filter dropdown from live DB
 async function loadStaffDistrictDropdowns() {
   try {
     const res  = await fetch(`${API}/districts`);
     const data = await res.json();
     const options = data.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+    const noneOption = '<option value="">— None —</option>';
     const addDd = document.getElementById('inputStaffDistrict');
-    if (addDd) addDd.innerHTML = options;
+    if (addDd) addDd.innerHTML = noneOption + options;
     const editDd = document.getElementById('editStaffDistrict');
-    if (editDd) editDd.innerHTML = options;
+    if (editDd) editDd.innerHTML = noneOption + options;
     const filterDd = document.getElementById('staffDistrictFilter');
     if (filterDd) filterDd.innerHTML = '<option value="">All Districts</option>' + options;
   } catch (e) {
@@ -40,7 +41,7 @@ async function loadStaffDistrictDropdowns() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  await initDistrictMap();              // build zonePill map from DB
+  await initDistrictMap();
   await loadStaffDistrictDropdowns();
   await loadStaffList();
 });
@@ -76,7 +77,7 @@ function renderStaff() {
       <td><strong>${s.name}</strong></td>
       <td>${s.role}</td>
       <td>${zonePill(s.district)}</td>
-      <td>${s.contact || '—'}</td>
+      <td>${s.contact}</td>
       <td>${statusPill(s.status === 'On Leave' ? 'Maintenance' : s.status)}</td>
       <td style="color:#aaa; font-size:0.8rem">${s.dateHired}</td>
       <td>
@@ -90,33 +91,43 @@ function renderStaff() {
 // ── CREATE ────────────────────────────────────
 async function saveStaff() {
   const name = document.getElementById('inputStaffName').value.trim();
-
-  // Validate required field
   document.getElementById('fg-staffName').classList.toggle('has-error', !name);
   if (!name) return;
 
-  const newID = 'ST-' + String(staffList.length + 1).padStart(3, '0');
+  // Generate ID numerically from highest existing staff ID
+  const idRes = await fetch(`${API}/staff`);
+  const all   = await idRes.json();
+  let nextNum = 1;
+  if (all.length) {
+    const max = all.reduce((m, s) => {
+      const match = s.staff_id && s.staff_id.match(/ST-(\d+)/);
+      return match ? Math.max(m, parseInt(match[1])) : m;
+    }, 0);
+    nextNum = max + 1;
+  }
+  const newID = 'ST-' + String(nextNum).padStart(3, '0');
 
   const fields = {
     name:        name,
     role:        document.getElementById('inputStaffRole').value,
+    district_id: document.getElementById('inputStaffDistrict').value || null,
     contact:     document.getElementById('inputStaffContact').value.trim() || null,
     status:      document.getElementById('inputStaffStatus').value,
   };
 
   try {
     const res = await fetch(`${API}/staff`, {
-      method: 'POST',
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ staff_id: newID, ...fields })
+      body:    JSON.stringify({ staff_id: newID, ...fields }),
     });
     if (res.ok) {
-      await loadStaffList(); // reload from DB
+      await loadStaffList();
       closeModal('addStaffModal');
       toast('Staff member added!');
-      // Clear the form
       document.getElementById('inputStaffName').value    = '';
       document.getElementById('inputStaffContact').value = '';
+      document.getElementById('inputStaffDistrict').value = '';
     } else {
       const err = await res.json();
       toast('Error: ' + (err.error || 'Failed to add staff member.'));
@@ -130,46 +141,40 @@ async function saveStaff() {
 function openEditStaffModal(id) {
   const s = staffList.find(x => x.staffID === id);
   if (!s) return;
-
   document.getElementById('editStaffId').value       = s.staffID;
   document.getElementById('editStaffName').value     = s.name;
   document.getElementById('editStaffRole').value     = s.role;
-  document.getElementById('editStaffDistrict').value = s.district;
+  document.getElementById('editStaffDistrict').value = s.district || '';
   document.getElementById('editStaffContact').value  = s.contact === '—' ? '' : s.contact;
   document.getElementById('editStaffStatus').value   = s.status;
-
   openModal('editStaffModal');
 }
 
-function updateStaff() {
-  const id  = document.getElementById('editStaffId').value;
-
+async function updateStaff() {
+  const id = document.getElementById('editStaffId').value;
   const updateData = {
     name:        document.getElementById('editStaffName').value.trim(),
     role:        document.getElementById('editStaffRole').value,
-    district_id: document.getElementById('editStaffDistrict').value,
+    district_id: document.getElementById('editStaffDistrict').value || null,
     contact:     document.getElementById('editStaffContact').value.trim() || null,
     status:      document.getElementById('editStaffStatus').value,
   };
-
-  (async () => {
-    try {
-      const res = await fetch(`${API}/staff/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updateData),
-      });
-      if (res.ok) {
-        await loadStaffList(); // Reload from database
-        closeModal('editStaffModal');
-        toast('Staff updated!');
-      } else {
-        toast('Failed to update staff.');
-      }
-    } catch (e) {
-      toast('Error updating staff: ' + e.message);
+  try {
+    const res = await fetch(`${API}/staff/${id}`, {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(updateData),
+    });
+    if (res.ok) {
+      await loadStaffList();
+      closeModal('editStaffModal');
+      toast('Staff updated!');
+    } else {
+      toast('Failed to update staff.');
     }
-  })();
+  } catch (e) {
+    toast('Error updating staff: ' + e.message);
+  }
 }
 
 // ── DELETE ────────────────────────────────────
@@ -181,22 +186,18 @@ function openDeleteStaffModal(id) {
   openModal('deleteStaffModal');
 }
 
-function confirmDeleteStaff() {
-  (async () => {
-    try {
-      const res = await fetch(`${API}/staff/${pendingDeleteStaffId}`, {
-        method: 'DELETE',
-      });
-      if (res.ok) {
-        await loadStaffList(); // Reload from database
-        closeModal('deleteStaffModal');
-        toast('Staff member removed!');
-        pendingDeleteStaffId = null;
-      } else {
-        toast('Failed to delete staff.');
-      }
-    } catch (e) {
-      toast('Error deleting staff: ' + e.message);
+async function confirmDeleteStaff() {
+  try {
+    const res = await fetch(`${API}/staff/${pendingDeleteStaffId}`, { method: 'DELETE' });
+    if (res.ok) {
+      await loadStaffList();
+      closeModal('deleteStaffModal');
+      toast('Staff member removed!');
+      pendingDeleteStaffId = null;
+    } else {
+      toast('Failed to delete staff.');
     }
-  })();
+  } catch (e) {
+    toast('Error deleting staff: ' + e.message);
+  }
 }

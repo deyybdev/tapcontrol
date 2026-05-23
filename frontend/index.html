@@ -4,6 +4,8 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>TapControl</title>
+  <!-- FAVICON: replace favicon.png in the frontend folder to update the browser tab icon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
@@ -14,49 +16,54 @@
 </head>
 <body>
 
-<!-- Page content injected BETWEEN sidebar/topbar wrappers by layout.js -->
 <div class="page-title">Admin Dashboard</div>
 
+<!-- STAT CARDS -->
 <div class="row g-3 mb-4">
-  <div class="col-md-4">
+  <div class="col-md-3">
     <div class="stat-card">
       <div class="stat-card-label">Total Consumers</div>
-      <div class="stat-card-value">1,284</div>
-      <div class="stat-card-trend"><span class="trend-pos">+9.0%</span> Since Last Month</div>
+      <div class="stat-card-value" id="statConsumers">—</div>
+      <div class="stat-card-trend" id="statConsumersTrend"></div>
     </div>
   </div>
-  <div class="col-md-4">
+  <div class="col-md-3">
     <div class="stat-card">
       <div class="stat-card-label">Unpaid Bills</div>
-      <div class="stat-card-value">₱48,320</div>
-      <div class="stat-card-trend"><span class="trend-neg">+3.1%</span> Since Last Week</div>
+      <div class="stat-card-value" id="statUnpaid">—</div>
+      <div class="stat-card-trend" id="statUnpaidTrend"></div>
     </div>
   </div>
-  <div class="col-md-4">
+  <div class="col-md-3">
     <div class="stat-card">
-      <div class="stat-card-label">Collected (May)</div>
-      <div class="stat-card-value">₱236,180</div>
-      <div class="stat-card-trend"><span class="trend-pos">+9.0%</span> Since Last Month</div>
+      <div class="stat-card-label" id="statCollectedLabel">Collected</div>
+      <div class="stat-card-value" id="statCollected">—</div>
+      <div class="stat-card-trend" id="statCollectedTrend"></div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="stat-card-label">Open Service Requests</div>
+      <div class="stat-card-value" id="statRequests">—</div>
+      <div class="stat-card-trend" id="statRequestsTrend"></div>
     </div>
   </div>
 </div>
 
+<!-- CONSUMERS TABLE + CHART -->
 <div class="section-row mb-4" style="flex-wrap:wrap;gap:20px">
   <div class="table-card" style="flex:1.4;min-width:280px">
     <div class="table-card-header">
-      <div class="table-card-title">Consumers</div>
+      <div class="table-card-title">Recent Consumers</div>
+      <a href="consumers.html" style="font-size:0.8rem;color:#4d80e4;text-decoration:none">View All →</a>
     </div>
     <div class="table-responsive">
       <table class="table tc-table mb-0">
         <thead>
           <tr><th>#</th><th>Name</th><th>District</th><th>Status</th></tr>
         </thead>
-        <tbody>
-          <tr><td>1</td><td>Barangay Northside</td><td><span class="zone-pill zone-a">District A</span></td><td><span class="status-pill s-active"><span class="s-dot" style="background:#1D9E75"></span>Active</span></td></tr>
-          <tr><td>2</td><td>Eastgate Complex</td><td><span class="zone-pill zone-b">District B</span></td><td><span class="status-pill s-active"><span class="s-dot" style="background:#1D9E75"></span>Active</span></td></tr>
-          <tr><td>3</td><td>Central Market</td><td><span class="zone-pill zone-c">District C</span></td><td><span class="status-pill s-maintenance"><span class="s-dot" style="background:#BA7517"></span>Maintenance</span></td></tr>
-          <tr><td>4</td><td>San Miguel Residences</td><td><span class="zone-pill zone-a">District A</span></td><td><span class="status-pill s-active"><span class="s-dot" style="background:#1D9E75"></span>Active</span></td></tr>
-          <tr><td>5</td><td>Eastgate Food Court</td><td><span class="zone-pill zone-b">District B</span></td><td><span class="status-pill s-inactive"><span class="s-dot" style="background:#e74c3c"></span>Inactive</span></td></tr>
+        <tbody id="dashConsumerBody">
+          <tr><td colspan="4" style="text-align:center;color:#aaa;padding:20px">Loading…</td></tr>
         </tbody>
       </table>
     </div>
@@ -65,20 +72,112 @@
   <div class="chart-card" style="flex:1;min-width:240px">
     <div class="chart-title">District Usage Overview</div>
     <div class="chart-legend">
-      <div class="legend-item"><div class="legend-dot" style="background:#3B4FE4"></div> Usage (m³)</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#9B5CF6"></div> Pressure (bar×100)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#3B4FE4"></div> Consumers</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#9B5CF6"></div> Usage (m³÷10)</div>
     </div>
     <div class="chart-wrap" id="dashChart">
-      <div class="chart-col"><div class="chart-bars"><div class="bar blue" style="height:120px"></div><div class="bar purple" style="height:82px"></div></div><div class="chart-label">District A</div></div>
-      <div class="chart-col"><div class="chart-bars"><div class="bar blue" style="height:155px"></div><div class="bar purple" style="height:92px"></div></div><div class="chart-label">District B</div></div>
-      <div class="chart-col"><div class="chart-bars"><div class="bar blue" style="height:70px"></div><div class="bar purple" style="height:78px"></div></div><div class="chart-label">District C</div></div>
-      <div class="chart-col"><div class="chart-bars"><div class="bar blue" style="height:95px"></div><div class="bar purple" style="height:86px"></div></div><div class="chart-label">District D</div></div>
+      <div style="color:#aaa;font-size:0.8rem;padding:20px">Loading…</div>
     </div>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="js/layout.js"></script>
-<script>renderLayout('dashboard');</script>
+<script>
+renderLayout('dashboard');
+
+async function loadDashboard() {
+  try {
+    const [dashRes, distRes] = await Promise.all([
+      fetch(`${API}/dashboard`),
+      fetch(`${API}/districts`),
+    ]);
+    const dash = await dashRes.json();
+    const districts = await distRes.json();
+
+    // Build district name map
+    const distMap = {};
+    districts.forEach(d => { distMap[d.id] = d.name; });
+
+    // ── Stat cards ──
+    document.getElementById('statConsumers').textContent =
+      Number(dash.total_consumers).toLocaleString();
+    document.getElementById('statConsumersTrend').innerHTML =
+      `<span style="color:#aaa;font-size:0.82rem">Live from database</span>`;
+
+    document.getElementById('statUnpaid').textContent =
+      '₱' + Number(dash.unpaid_total).toLocaleString();
+    document.getElementById('statUnpaidTrend').innerHTML =
+      `<span style="color:#aaa;font-size:0.82rem">Unpaid billing records</span>`;
+
+    const now = new Date();
+    document.getElementById('statCollectedLabel').textContent =
+      `Collected (${now.toLocaleString('en-US', { month: 'long' })})`;
+    document.getElementById('statCollected').textContent =
+      '₱' + Number(dash.collected).toLocaleString();
+    document.getElementById('statCollectedTrend').innerHTML =
+      `<span style="color:#aaa;font-size:0.82rem">This month's payments</span>`;
+
+    document.getElementById('statRequests').textContent =
+      Number(dash.open_requests).toLocaleString();
+    document.getElementById('statRequestsTrend').innerHTML =
+      `<span style="color:#aaa;font-size:0.82rem">Awaiting resolution</span>`;
+
+    // ── Recent consumers table ──
+    const ZONE_CLS = ['zone-a','zone-b','zone-c','zone-d','zone-e'];
+    const distKeys = Object.keys(distMap);
+    const tbody = document.getElementById('dashConsumerBody');
+    if (!dash.recent_consumers || !dash.recent_consumers.length) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#aaa;padding:20px">No consumers yet.</td></tr>';
+    } else {
+      tbody.innerHTML = dash.recent_consumers.map((c, i) => {
+        const distIdx = distKeys.indexOf(c.district_id);
+        const cls  = ZONE_CLS[distIdx >= 0 ? distIdx % ZONE_CLS.length : 0];
+        const name = distMap[c.district_id] || c.district_id || '—';
+        const pill = `<span class="zone-pill ${cls}">${name}</span>`;
+        const sCol = c.status === 'Active' ? '#1D9E75' : c.status === 'Maintenance' ? '#BA7517' : '#e74c3c';
+        const sCls = c.status === 'Active' ? 's-active' : c.status === 'Maintenance' ? 's-maintenance' : 's-inactive';
+        const sPill = `<span class="status-pill ${sCls}"><span class="s-dot" style="background:${sCol}"></span>${c.status}</span>`;
+        return `<tr><td>${i+1}</td><td>${c.full_name}</td><td>${pill}</td><td>${sPill}</td></tr>`;
+      }).join('');
+    }
+
+    // ── District bar chart ──
+    const chartWrap = document.getElementById('dashChart');
+    const stats = dash.district_stats || [];
+    if (!stats.length) {
+      chartWrap.innerHTML = '<div style="color:#aaa;font-size:0.8rem;padding:20px">No district data.</div>';
+      return;
+    }
+
+    const maxConsumers = Math.max(...stats.map(d => d.consumer_count), 1);
+    const maxUsage     = Math.max(...stats.map(d => d.total_usage / 10), 1);
+    const MAX_HEIGHT   = 140;
+
+    chartWrap.innerHTML = stats.map(d => {
+      const cH = Math.round((d.consumer_count / maxConsumers) * MAX_HEIGHT);
+      const uH = Math.round(((d.total_usage / 10) / maxUsage) * MAX_HEIGHT);
+      const name = distMap[d.id] || d.name;
+      return `
+        <div class="chart-col">
+          <div class="chart-bars">
+            <div class="bar blue"   style="height:${Math.max(cH, 4)}px" title="${d.consumer_count} consumers"></div>
+            <div class="bar purple" style="height:${Math.max(uH, 4)}px" title="${d.total_usage} m³ usage"></div>
+          </div>
+          <div class="chart-label">${name}</div>
+        </div>`;
+    }).join('');
+
+  } catch (e) {
+    console.error('Dashboard load error:', e);
+    document.getElementById('dashConsumerBody').innerHTML =
+      '<tr><td colspan="4" style="text-align:center;color:#e74c3c;padding:20px">Failed to load: ' + e.message + '</td></tr>';
+    document.getElementById('dashChart').innerHTML =
+      '<div style="color:#e74c3c;font-size:0.8rem;padding:20px">Chart failed to load.</div>';
+  }
+}
+
+loadDashboard();
+</script>
 </body>
 </html>
