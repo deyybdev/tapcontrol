@@ -78,7 +78,7 @@ function renderStaff() {
       <td>${s.role}</td>
       <td>${zonePill(s.district)}</td>
       <td>${s.contact}</td>
-      <td>${statusPill(s.status === 'On Leave' ? 'Maintenance' : s.status)}</td>
+      <td>${statusPill(s.status === 'On Leave' ? 'On Leave' : s.status)}</td>
       <td style="color:#aaa; font-size:0.8rem">${s.dateHired}</td>
       <td>
         <button class="btn-edit-sm me-1" onclick="openEditStaffModal('${s.staffID}')">Edit</button>
