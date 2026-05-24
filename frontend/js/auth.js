@@ -7,6 +7,7 @@
 (function () {
   const user = sessionStorage.getItem('tc_user');
   if (!user) {
-    window.location.replace('login.html');
+    // login.html is at project root, one level above frontend/
+    window.location.replace('../login.html');
   }
 })();
