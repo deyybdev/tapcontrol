@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="tapcontrol-logo.png" alt="TapControl Logo" width="90" />
+<img src="./frontend/img/favicon.png" alt="TapControl Logo" width="90" />
 
 # TapControl
 
