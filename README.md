@@ -27,7 +27,7 @@
 |---|---|
 | *Mark Dave Asaytuno* | *Project Lead & Database Administrator* |
 | *Joshua Lopera* | *Frontend Designer & UI/UX Developer* |
-| *Aldwin Jude Lunas* | * Backend Developer* |
+| *Aldwin Jude Lunas* | *Backend Developer* |
 | *Jayson Victor Sapin* | *Backend Developer and Documentation* |
 
 ---
